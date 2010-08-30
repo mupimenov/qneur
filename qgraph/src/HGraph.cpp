@@ -69,7 +69,7 @@ HGraph::createVertexAfterVertexInEdge(const Vertex* v, Edge* e, const std::strin
 }
 
 int 
-HGraph::vertexPositionInEdge(const Vertex* v, Edge* e)
+HGraph::vertexPositionInEdge(const Vertex* v, const Edge* e)
 {
     VertexPos vpos = {v: v, e: e, pos: 0};
     std::set<VertexPos>::const_iterator it = positions->find(vpos);
@@ -116,19 +116,138 @@ HGraph::linkVertices(const Vertex* a, const Vertex* b)
 }
 
 const Vertex*
-HGraph::markVertex(const Vertex* v, const char* attrName, double value = 0.)
+HGraph::markVertex(const Vertex* v, const std::string& attrName, double value = 0.)
 {
     Attribute a = {name: attrName};
     attributes->insert(a);
 
-    Mark m;
-    m.v = v;
-    m.a = &a;
-    m.value = value;
+    Mark m = {v: v, a: &a, value: value};
 
     marks->insert(m);
 
     return v;
 }
+
+std::set<const Edge*> 
+HGraph::incidentEdges(const Vertex* v)
+{
+    std::set<const Edge*> es;
+    for (std::set<Edge>::iterator it = edges->begin(); it != edges->end(); it++)
+    {
+        std::set<const Vertex*>::const_iterator vit = it->vertices.find(v);
+        if (vit != it->vertices.end())
+            es.insert(&*it);
+    }
+    return es;
+}
+
+const Vertex* 
+HGraph::getVertexAroundVertexInEdge(const Vertex* v, const Edge* e, int dpos)
+{
+    int pos = vertexPositionInEdge(v, e);
+    for (std::set<const Vertex*>::iterator vit = e->vertices.begin(); vit != e->vertices.end(); vit++)
+    {
+        if (vertexPositionInEdge(*vit, e) == pos + dpos)
+            return *vit;
+    }
+    return NULL;
+}
+
+const Vertex* 
+HGraph::nextVertexAfterVertexInEdge(const Vertex* v, const Edge* e)
+{
+    return getVertexAroundVertexInEdge(v, e, 1);
+}
+
+const Vertex* 
+HGraph::prevVertexBeforeVertexInEdge(const Vertex* v, const Edge* e)
+{
+    return getVertexAroundVertexInEdge(v, e, -1);
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  HGraph::adjacentVertices
+ *  Description:  
+ * =====================================================================================
+ */
+std::set<const Vertex*>
+HGraph::adjacentVertices ( const Vertex* v, filterAdjacentVertices f) 
+{
+
+    std::set<const Vertex*> vs;
+    std::set<const Edge*> es = incidentEdges(v);
+    for (std::set<const Edge*>::iterator it = es.begin(); it != es.end(); it++)
+    {
+        const Vertex* av = (this->*f)(v, *it);
+        if (av != 0)
+            vs.insert(av);
+    }
+    return vs;
+    
+}		/* -----  end of function Neurnet::adjacentVertices  ----- */
+
+std::set<const Vertex*> 
+HGraph::nextAdjacentVertices(const Vertex* v)
+{
+    return adjacentVertices(v, &HGraph::nextVertexAfterVertexInEdge);
+}
+
+std::set<const Vertex*> 
+HGraph::prevAdjacentVertices(const Vertex* v)
+{
+    return adjacentVertices(v, &HGraph::prevVertexBeforeVertexInEdge);
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  HGraph::getAttibute
+ *  Description:  Get point to attribute having actual name  
+ * =====================================================================================
+ */
+const Attribute*
+HGraph::getAttribute (const std::string& name)
+{
+    Attribute a = {name: name}; 
+    std::set<Attribute>::const_iterator it = attributes->find(a);
+    return &*it;
+}		/* -----  end of function HGraph::getAttibute  ----- */
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  HGraph::filterVertices
+ *  Description:  
+ * =====================================================================================
+ */
+std::set<const Vertex*>
+HGraph::filterVertices ( const Attribute* a )
+{
+    std::set<const Vertex*> vs;
+    for (std::set<Vertex>::iterator it = vertices->begin(); it != vertices->end(); it++)
+    {
+        if (isVertexMarked(&*it, a))
+            vs.insert(&*it);
+    }
+    return vs;
+}		/* -----  end of function HGraph::filterVertices  ----- */
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  HGraph::isVertexMarked
+ *  Description:  
+ * =====================================================================================
+ */
+int
+HGraph::isVertexMarked (const Vertex* v, const Attribute* a )
+{
+    Mark m = {v: v, a: a, value: 0.};
+    std::set<Mark>::const_iterator it = marks->find(m);
+    if (it != marks->end())
+        return 1;
+    return 0; 
+}		/* -----  end of function HGraph::isVertexMarked  ----- */
+
 }
 

@@ -9,7 +9,7 @@ namespace graph
 struct VertexPos
 {
     const Vertex* v;
-    Edge* e;
+    const Edge* e;
     unsigned int pos;
     
     bool operator<(const VertexPos& vp) const
